@@ -12,7 +12,6 @@ from object_detection.utils import visualization_utils as viz_utils
 from rclpy.node import Node
 
 from sensor_msgs.msg import Image
-from std_msgs.msg import Int8
 
 ## Message type: sensor_msgs/msg/Image
 # This message contains an uncompressed image
@@ -53,9 +52,10 @@ class MinimalSubscriber(Node):
 
         # Load saved model and build the detection function
         self.detect_fn = tf.saved_model.load(PATH_TO_SAVED_MODEL)
+        self.get_logger().info('The model was succesfully loaded')
         # Load the labels
         self.category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS,use_display_name=True)
-        
+        self.get_logger().info('The label maps was succesfully loaded')
         self.bridge = CvBridge()
         self.subscription = self.create_subscription(
             Image,
@@ -63,13 +63,14 @@ class MinimalSubscriber(Node):
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
-        #self.publisher_ = self.create_publisher(Image,'salida',10)
+  #      self.image = cv2.imread('./src/tl_perception/image_2.jpg')
+ #       self.publisher_ = self.create_publisher(Image,'detections/image',10)
 
     def listener_callback(self, msg):
         img = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         img = cv2.resize(img, (512, 512))
         img_np = np.array(img)
-        #height, width, channels = img.shape
+   #     height, width, channels = img.shape
         input_tensor = tf.convert_to_tensor(img_np)
         input_tensor = input_tensor[tf.newaxis, ...]
         detections = self.detect_fn(input_tensor)
@@ -92,23 +93,25 @@ class MinimalSubscriber(Node):
               agnostic_mode=False)
         scores = detections['detection_scores'][detections['detection_scores'] > 0.25]
         bb = detections['detection_boxes'][0:scores.size]
-        classes = detections['detection_classes'][0:scores.size]
-        #print(scores, bb , classes) 
+        classes = detections['detection_classes'][0:scores.size] 
+        cv2.imshow("Traffic Light Detections", image_np_with_detections)
+        cv2.waitKey(3)
+##        new_msg = self.bridge.cv2_to_imgmsg(np.array(img),encoding = "passthrough")
+##        new_msg.header.frame_id = 'Inference'
+##        new_msg.header.stamp.sec =  msg.header.stamp.sec
+##        new_msg.header.stamp.nanosec = msg.header.stamp.nanosec
+##        new_msg.step = msg.step
+##        new_msg.encoding = 'bgra8'
+##        self.publisher_.publish(new_msg)
+#        self.publisher_.publish(self.bridge.cv2_to_imgmsg(np.array(self.image), "rgb8")) 
         #msg.data=self.bridge.cv2_to_imgmsg(np.array(img), "bgr8")
         #self.publisher_.publish(msg)
-        #self.get_logger().info('height  %d, width %d, channels %d' %(height,width,channels))
-        self.get_logger().info('The number of detections %d' %(scores.size))
+        #self.getself.get_logger().info('The number of detections %d' %(scores.size))_logger().info('height  %d, width %d, channels %d' %(height,width,channels))
+  #      self.get_logger().info('The number of detections %d' %(scores.size))
         #self.publisher_.publish(msg)
 
 def main(args=None):
-#    PATH_TO_SAVED_MODEL = "./src/tl_perception/models/EfficienDet512/saved_model"
-#    PATH_TO_LABELS = "./src/tl_perception/label_maps/bstld_label_map.pbtxt"
 
-    # Load saved model and build the detection function
-#    detect_fn = tf.saved_model.load(PATH_TO_SAVED_MODEL)
-    # Load the labels
-#    category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS,use_display_name=True)
-    # ROS
     rclpy.init(args=args)
     model_inference = MinimalSubscriber()
 
