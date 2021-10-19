@@ -47,7 +47,7 @@ class MinimalSubscriber(Node):
 
     def __init__(self):
         super().__init__('model_inference')
-        PATH_TO_SAVED_MODEL = "./src/tl_perception/models/EfficienDet512/saved_model"
+        PATH_TO_SAVED_MODEL = "./src/tl_perception/models/EfficienDet512_Augmeted/saved_model"
         PATH_TO_LABELS = "./src/tl_perception/label_maps/bstld_label_map.pbtxt"
 
         # Load saved model and build the detection function
@@ -63,14 +63,16 @@ class MinimalSubscriber(Node):
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
-  #      self.image = cv2.imread('./src/tl_perception/image_2.jpg')
- #       self.publisher_ = self.create_publisher(Image,'detections/image',10)
+        #self.publisher_ = self.create_publisher(Image,'detections/image',10)
 
     def listener_callback(self, msg):
+        # Extract only the information of the image in the ros message
         img = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        img = cv2.resize(img, (512, 512))
+        # Convert the domain from BGR to RGB
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        # Convert to a numpy array
         img_np = np.array(img)
-   #     height, width, channels = img.shape
+        #height, width, channels = img.shape
         input_tensor = tf.convert_to_tensor(img_np)
         input_tensor = input_tensor[tf.newaxis, ...]
         detections = self.detect_fn(input_tensor)
@@ -89,12 +91,14 @@ class MinimalSubscriber(Node):
               self.category_index,
               use_normalized_coordinates=True,
               max_boxes_to_draw=200,
-              min_score_thresh=.25,
+              min_score_thresh=.20,
               agnostic_mode=False)
-        scores = detections['detection_scores'][detections['detection_scores'] > 0.25]
+        # Retrieve all the information from the confidences, BBs, and classes that are greater than the threshold
+        scores = detections['detection_scores'][detections['detection_scores'] > 0.20]
         bb = detections['detection_boxes'][0:scores.size]
         classes = detections['detection_classes'][0:scores.size] 
-        cv2.imshow("Traffic Light Detections", image_np_with_detections)
+        # Plot the TL detections found in the image 
+        cv2.imshow("Traffic Light Detections", cv2.cvtColor(image_np_with_detections, cv2.COLOR_BGR2RGB)
         cv2.waitKey(3)
 ##        new_msg = self.bridge.cv2_to_imgmsg(np.array(img),encoding = "passthrough")
 ##        new_msg.header.frame_id = 'Inference'
