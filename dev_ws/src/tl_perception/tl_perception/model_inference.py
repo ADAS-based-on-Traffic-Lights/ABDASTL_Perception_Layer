@@ -12,10 +12,7 @@ from object_detection.utils import visualization_utils as viz_utils
 from rclpy.node import Node
 
 from sensor_msgs.msg import Image
-
-## Message type: sensor_msgs/msg/Image
-# This message contains an uncompressed image
-# (0, 0) is at top-left corner of image
+from tl_interfaces.msg import TLPredictions
 
 """ std_msgs/Header header # Header timestamp should be acquisition time of image
                              # Header frame_id should be optical frame of camera
@@ -63,7 +60,9 @@ class MinimalSubscriber(Node):
             self.listener_callback,
             10)
         self.subscription  # prevent unused variable warning
-        #self.publisher_ = self.create_publisher(Image,'detections/image',10)
+        # Publishers
+        self.publisher_ = self.create_publisher(Image,'detections/image',10)
+        self.tlpredictions = self.create_publisher(TLPredictions,'detection/model/predictions',10)
 
     def listener_callback(self, msg):
         # Extract only the information of the image in the ros message
@@ -72,7 +71,7 @@ class MinimalSubscriber(Node):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # Convert to a numpy array
         img_np = np.array(img)
-        #height, width, channels = img.shape
+        height, width, channels = img.shape
         input_tensor = tf.convert_to_tensor(img_np)
         input_tensor = input_tensor[tf.newaxis, ...]
         detections = self.detect_fn(input_tensor)
@@ -83,6 +82,7 @@ class MinimalSubscriber(Node):
         # detection_classes should be ints.
         detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
         image_np_with_detections = img_np.copy()
+        image_prueba = img_np.copy()
         viz_utils.visualize_boxes_and_labels_on_image_array(
               image_np_with_detections,
               detections['detection_boxes'],
@@ -91,28 +91,48 @@ class MinimalSubscriber(Node):
               self.category_index,
               use_normalized_coordinates=True,
               max_boxes_to_draw=200,
-              min_score_thresh=.20,
+              min_score_thresh=.30,
               agnostic_mode=False)
-        # Retrieve all the information from the confidences, BBs, and classes that are greater than the threshold
-        scores = detections['detection_scores'][detections['detection_scores'] > 0.20]
-        bb = detections['detection_boxes'][0:scores.size]
-        classes = detections['detection_classes'][0:scores.size] 
-        # Plot the TL detections found in the image 
-        cv2.imshow("Traffic Light Detections", cv2.cvtColor(image_np_with_detections, cv2.COLOR_BGR2RGB)
+
+        # Retrieve all the information from the Confidences, BBs, and Classes that are greater than the threshold
+        scores = detections['detection_scores'][detections['detection_scores'] > 0.30]
+        bbs = detections['detection_boxes'][0:scores.size]
+        bbs_int = []
+        for count, bb in enumerate(bbs): # bbs structure ymin, xmin, ymax, xmax
+          bbs_int.append(int(bb[0]* height))  # ymin*height
+          bbs_int.append(int(bb[1]* width))  # xmin*width
+          bbs_int.append(int(bb[2]* height)) # ymax*height
+          bbs_int.append(int(bb[3]* width)) # xman*width
+        classes = detections['detection_classes'][0:scores.size]
+
+        ## Create the Image Message
+        image_np_with_detections = cv2.cvtColor(image_np_with_detections, cv2.COLOR_BGR2RGB)
+#        self.publisher_.publish(self.bridge.cv2_to_imgmsg(np.array(image_np_with_detections), "bgra8"))
+        if scores.size > 0:
+          cv2.rectangle(image_prueba, (bbs_int[1],bbs_int[0]), (bbs_int[3], bbs_int[2]), (255,0,0), 2)
+        
+        cv2.imshow("Traffic Light Detections", cv2.cvtColor(image_prueba, cv2.COLOR_BGR2RGB))
         cv2.waitKey(3)
-##        new_msg = self.bridge.cv2_to_imgmsg(np.array(img),encoding = "passthrough")
-##        new_msg.header.frame_id = 'Inference'
-##        new_msg.header.stamp.sec =  msg.header.stamp.sec
-##        new_msg.header.stamp.nanosec = msg.header.stamp.nanosec
-##        new_msg.step = msg.step
-##        new_msg.encoding = 'bgra8'
-##        self.publisher_.publish(new_msg)
-#        self.publisher_.publish(self.bridge.cv2_to_imgmsg(np.array(self.image), "rgb8")) 
+
+        ## Create the TLPredictions Message
+        msg = TLPredictions()
+        msg.classes = classes.tolist()
+        msg.boundingboxes = bbs_int
+        self.tlpredictions.publish(msg)
+
+#        self.get_logger().info('Publishing clases: %d ',classes)
+#        self.get_logger().info('Publishing bounding boxes %d' %(bb))
+#        new_msg = self.bridge.cv2_to_imgmsg(np.array(img),encoding = "passthrough")
+#        new_msg.header.frame_id = 'Inference'
+#        new_msg.header.stamp.sec =  msg.header.stamp.sec
+#        new_msg.header.stamp.nanosec = msg.header.stamp.nanosec
+#        new_msg.step = msg.step
+#        new_msg.encoding = 'bgra8'
+#        self.publisher_.publish(new_msg)
+#        self.publisher_.publish(self.bridge.cv2_to_imgmsg(np.array(self.image), "rgb8"))
         #msg.data=self.bridge.cv2_to_imgmsg(np.array(img), "bgr8")
         #self.publisher_.publish(msg)
-        #self.getself.get_logger().info('The number of detections %d' %(scores.size))_logger().info('height  %d, width %d, channels %d' %(height,width,channels))
-  #      self.get_logger().info('The number of detections %d' %(scores.size))
-        #self.publisher_.publish(msg)
+#        self.get_logger().info('The number of detections %d' %(scores.size))
 
 def main(args=None):
 
