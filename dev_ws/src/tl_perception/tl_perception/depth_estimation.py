@@ -1,0 +1,52 @@
+import rclpy
+import sys
+import os
+import numpy as np
+import cv2
+
+from cv_bridge import CvBridge
+
+from rclpy.node import Node
+
+from sensor_msgs.msg import Image
+
+class MinimalSubscriber(Node):
+
+    def __init__(self):
+        super().__init__('depth_estimation')
+        self.bridge = CvBridge()
+        # Subscribers
+        self.subscription = self.create_subscription(
+            Image,
+            '/detections/image',
+            self.listener_callback,
+            10)
+        self.subscription  # prevent unused variable warning
+
+    def listener_callback(self, msg):
+        img = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        print(img)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        height, width, channels = img.shape
+        print(height,width)
+        cv2.imshow("Traffic Light Detections", cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        cv2.waitKey(3)
+
+
+def main(args=None):
+    # ROS
+    rclpy.init(args=args)
+    model_inference = MinimalSubscriber()
+
+    rclpy.spin(model_inference)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    model_inference.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
+
