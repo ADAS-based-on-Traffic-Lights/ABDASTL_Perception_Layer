@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-		'model_inference = tl_perception.model_inference:main'
+		'model_inference = tl_perception.model_inference:main',
+                'depth_estimation = tl_perception.depth_estimation:main'
         ],
     },
 )
