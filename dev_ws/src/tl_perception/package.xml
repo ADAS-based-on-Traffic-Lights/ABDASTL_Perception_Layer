@@ -6,7 +6,6 @@
   <description>TODO: Package description</description>
   <maintainer email="nvidia@todo.todo">nvidia</maintainer>
   <license>TODO: License declaration</license>
-
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
