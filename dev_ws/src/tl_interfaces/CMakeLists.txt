@@ -17,14 +17,17 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+
 
 set(msg_files
   "msg/TLPredictions.msg"
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files} 
+  ${msg_files}
+  DEPENDENCIES std_msgs
  )
 
 if(BUILD_TESTING)
