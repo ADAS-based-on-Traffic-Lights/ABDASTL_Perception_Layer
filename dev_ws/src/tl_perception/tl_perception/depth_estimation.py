@@ -25,57 +25,25 @@ class MinimalSubscriber(Node):
         self.ts.registerCallback(self.listener_callback)
 
     def listener_callback(self, prediction_msg, depth_msg):
-        #print("Predictions",prediction_msg)
-        #print("*************************************")
-        #print("depth map",depth_msg)
-        #print("-------------------------------------")
-
         #Predicton Message
-        print(prediction_msg)
+        header = prediction_msg.header 
+        classes = prediction_msg.classes
+        bbs = prediction_msg.boundingboxes
+       # print(header)
+        print(classes)
+        print(bbs)
+        print("------")
 
         #Depth map dimension is 360,640
-        img = self.bridge.imgmsg_to_cv2(depth_msg, "passthrough")
-        cv2.imshow("Depth Map Estimation", img)
+        depth_img = self.bridge.imgmsg_to_cv2(depth_msg, "passthrough")
+        #Copy the depth map image and convert it to rgb to verify that the detections are well detected
+        copy = depth_img.copy()
+        copy = cv2.cvtColor(copy, cv2.COLOR_GRAY2RGB)
+        #Draw a bounding box to the traffic light detections
+        for i,tlclass in enumerate(classes): # 1 0 3 2
+          cv2.rectangle(copy, (bbs[i*4+1],bbs[i*4]), (bbs[i*4+3], bbs[i*4+2]), (0,255,0), 2)
+        cv2.imshow("Depth Map Estimation", copy)
         cv2.waitKey(3)
-
-        # Subscribers
-        ## Prediction Image subscription
-        #self.subscription = self.create_subscription(
-        #    Image,
-        #    '/detections/image',
-        #    self.listener_callback,
-        #    10)
-        #self.subscription  # prevent unused variable warning
-        ## Depth Map Image subscription
-        #self.depth_sub = self.create_subscription(
-        #    Image,
-        #    '/zed/zed_node/depth/depth_registered',
-        #    self.depth_estimation_callback,
-        #    10)
-        #self.depth_sub
-        ## Predictions BBs and classes subscription
-        #self.prediction_sub = self.create_subscription(
-        #    TLPredictions,
-        #    'detection/model/predictions',
-        #    self.listener_callback,
-        #    10)
-        #self.prediction_sub
-
-    #def listener_callback(self, msg):
-        #print(msg)
-        #img = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        #print(img)
-        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        #height, width, channels = img.shape
-        #print(height,width)
-        #cv2.imshow("Traffic Light Detections", cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-        #cv2.waitKey(3)
-
-    #def depth_estimation_callback(self, msg):
-        # depth map dimension is 360,640
-    #    img = self.bridge.imgmsg_to_cv2(msg, "passthrough")
-    #    cv2.imshow("Depth Map Estimation", img)
-    #    cv2.waitKey(3)
 
 def main(args=None):
     # ROS
