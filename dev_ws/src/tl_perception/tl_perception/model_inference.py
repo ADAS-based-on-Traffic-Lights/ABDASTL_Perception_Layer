@@ -15,39 +15,13 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import Header
 from tl_interfaces.msg import TLPredictions
 
-""" std_msgs/Header header # Header timestamp should be acquisition time of image
-                             # Header frame_id should be optical frame of camera
-                             # origin of frame should be optical center of cameara
-                             # +x should point to the right in the image
-                             # +y should point down in the image
-                             # +z should point into to plane of the image
-                             # If the frame_id here and the frame_id of the CameraInfo
-                             # message associated with the image conflict
-                             # the behavior is undefined
-
-uint32 height                # image height, that is, number of rows
-uint32 width                 # image width, that is, number of columns
-
-# The legal values for encoding are in file src/image_encodings.cpp
-# If you want to standardize a new string format, join
-# ros-users@lists.ros.org and send an email proposing a new encoding.
-
-string encoding       # Encoding of pixels -- channel meaning, ordering, size
-                      # taken from the list of strings in include/sensor_msgs/image_encodings.hpp
-
-uint8 is_bigendian    # is this data bigendian?
-uint32 step           # Full row length in bytes
-uint8[] data          # actual matrix data, size is (step * rows)
- """
-
-
 class MinimalSubscriber(Node):
 
     def __init__(self):
         super().__init__('model_inference')
+        # Set the file paths ot the labels (red,yellow,green,off) and the model
         PATH_TO_SAVED_MODEL = "./src/tl_perception/models/EfficienDet512_Augmeted/saved_model"
         PATH_TO_LABELS = "./src/tl_perception/label_maps/bstld_label_map.pbtxt"
-
         # Load saved model and build the detection function
         self.detect_fn = tf.saved_model.load(PATH_TO_SAVED_MODEL)
         self.get_logger().info('The model was succesfully loaded')
@@ -56,7 +30,7 @@ class MinimalSubscriber(Node):
         self.get_logger().info('The label maps was succesfully loaded')
         # Instance of Bridge for img to message conversion and visa versa
         self.bridge = CvBridge()
-        # Subscribers
+        # Subscriber
         self.subscription = self.create_subscription(
             Image,
             '/zed/zed_node/left/image_rect_color',
@@ -84,7 +58,8 @@ class MinimalSubscriber(Node):
         detections['num_detections'] = num_detections
         # detection_classes should be ints.
         detections['detection_classes'] = detections['detection_classes'].astype(np.int64)
-        image_np_with_detections = img_np.copy()
+        image_np_with_detections = img_np.copy() #Copy the rgb image
+        # Plot the detections greater thatn the min threshold in the copied image
         viz_utils.visualize_boxes_and_labels_on_image_array(
               image_np_with_detections,
               detections['detection_boxes'],
@@ -95,7 +70,6 @@ class MinimalSubscriber(Node):
               max_boxes_to_draw=200,
               min_score_thresh=.30,
               agnostic_mode=False)
-
         # Retrieve all the information from the Confidences, BBs, and Classes that are greater than the min threshold
         scores = detections['detection_scores'][detections['detection_scores'] > 0.30]
         bbs = detections['detection_boxes'][0:scores.size]
@@ -106,16 +80,24 @@ class MinimalSubscriber(Node):
           bbs_int.append(int(bb[2]* height)) # ymax*height
           bbs_int.append(int(bb[3]* width)) # xman*width
         classes = detections['detection_classes'][0:scores.size]
+ 
+        # Create the Image Message
+        new_image = self.bridge.cv2_to_imgmsg(cv2.cvtColor(image_np_with_detections, cv2.COLOR_RGB2BGR), "bgr8")
+        new_image.header = msg.header
+        new_image.height = height
+        new_image.width = width
+        new_image.encoding = "bgr8"
+        new_image.is_bigendian = msg.is_bigendian
+        new_image.step = msg.step
+        # Publish the Image Message
+        self.publisher_.publish(new_image)
 
-        ## Create the Image Message
-        image_np_with_detections = cv2.cvtColor(image_np_with_detections, cv2.COLOR_BGR2RGB)
-        self.publisher_.publish(self.bridge.cv2_to_imgmsg(np.array(image_np_with_detections), "bgr8"))
-
-        ## Create the TLPredictions Message
+        # Create the TLPredictions Message
         msg_prediction = TLPredictions()
         msg_prediction.header = msg.header
         msg_prediction.classes = classes.tolist()
         msg_prediction.boundingboxes = bbs_int
+        # Publish the TLPredicitons Message
         self.tlpredictions.publish(msg_prediction)
 
 def main(args=None):
