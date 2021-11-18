@@ -38,7 +38,7 @@ class MinimalSubscriber(Node):
             10)
         self.subscription  # prevent unused variable warning
         # Publishers
-        self.publisher_ = self.create_publisher(Image,'detections/image',10)
+        self.publisher_ = self.create_publisher(Image,'detections/image/rgb',10)
         self.tlpredictions = self.create_publisher(TLPredictions,'detection/model/predictions',10)
 
     def listener_callback(self, msg):
