@@ -66,6 +66,7 @@ class MinimalSubscriber(Node):
           depth_estimation.append(depth_array[y,x])
         # Convert it to a np array
         depth_estimation = np.array(depth_estimation)
+        classes = np.array(classes)
         # Create the Image Message
         #new_image = self.bridge.cv2_to_imgmsg(cv2.cvtColor(np.array(depth_img_rgb, dtype=np.uint8), cv2.COLOR_RGB2GRAY), "mono8")
         #new_image.header = prediction_msg.header
@@ -78,17 +79,23 @@ class MinimalSubscriber(Node):
         #self.publisher_.publish(new_image)
 
         # Create a ClassDistanceTL Message
-##        print(classes)
-##        print(depth_estimation.tolist())
-##        print("-----")
+        print("Before")
+        print(classes.tolist())
+        print(depth_estimation.tolist())
+        print("-----")
+        indexes = np.argsort(depth_estimation)
+        depth_estimation = depth_estimation[indexes]
+        classes = classes[indexes]
+        print("After")
+        print(classes.tolist())
+        print(depth_estimation.tolist())
+        print("-----")
         new_CDTL = ClassDistanceTL()
         new_CDTL.header = header
-        new_CDTL.classes = classes
+        new_CDTL.classes = classes.tolist()
         new_CDTL.distances = depth_estimation.tolist()
         # Publish the ClassDistanceTL Message
         self.publisher_.publish(new_CDTL)
-#        print(depth_estimation)
-#        print("---------------------------------")
 
 def main(args=None):
     # ROS
