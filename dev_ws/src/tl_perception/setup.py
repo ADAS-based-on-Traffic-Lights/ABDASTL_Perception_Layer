@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
 		'model_inference = tl_perception.model_inference:main',
-                'depth_estimation = tl_perception.depth_estimation:main'
+                'depth_estimation = tl_perception.depth_estimation:main',
+                'tl_decision_making = tl_perception.tl_decision_making:main'
         ],
     },
 )
