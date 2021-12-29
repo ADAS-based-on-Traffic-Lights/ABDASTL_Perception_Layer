@@ -13,7 +13,7 @@ class MinimalSubscriber(Node):
     def __init__(self):
         super().__init__('tl_decision_making')
         
-        # New Antecedent/Consequent objects hold universe variables and membership
+        # Define the Membership Functions 
         ## Inputs
         ### Traffic Light State
         self.TL_State = ctrl.Antecedent(np.arange(0, 5, 0.1), 'TL_State')
@@ -34,8 +34,29 @@ class MinimalSubscriber(Node):
         self.Brake_Signal['Moderate_Brake'] = fuzz.trimf(self.Brake_Signal.universe, [0.2, 0.3, 0.5])
         self.Brake_Signal['Full_Brake'] = fuzz.trapmf(self.Brake_Signal.universe, [0.5, 0.8, 1, 1])
         
+        # Define the Fuzzy Logic Rules
+        rule1 = ctrl.Rule(self.TL_State['Green'] & self.Distance['Close'], self.Brake_Signal['No_Brake'])
+        rule2 = ctrl.Rule(self.TL_State['Green'] & self.Distance['Normal'], self.Brake_Signal['No_Brake'])
+        rule3 = ctrl.Rule(self.TL_State['Green'] & self.Distance['Far'], self.Brake_Signal['No_Brake'])
+        rule4 = ctrl.Rule(self.TL_State['Off'] & self.Distance['Far'], self.Brake_Signal['No_Brake'])
+        rule5 = ctrl.Rule(self.TL_State['Yellow'] & self.Distance['Far'], self.Brake_Signal['No_Brake'])
+        rule6 = ctrl.Rule(self.TL_State['Red'] & self.Distance['Far'], self.Brake_Signal['No_Brake'])
+        rule7 = ctrl.Rule(self.TL_State['Off'] & self.Distance['Normal'], self.Brake_Signal['Moderate_Brake'])
+        rule8 = ctrl.Rule(self.TL_State['Yellow'] & self.Distance['Normal'], self.Brake_Signal['Moderate_Brake'])
+        rule9 = ctrl.Rule(self.TL_State['Red'] & self.Distance['Normal'], self.Brake_Signal['Moderate_Brake'])
+        rule10 = ctrl.Rule(self.TL_State['Off'] & self.Distance['Close'], self.Brake_Signal['Full_Brake'])
+        rule11 = ctrl.Rule(self.TL_State['Yellow'] & self.Distance['Close'], self.Brake_Signal['Full_Brake'])
+        rule12 = ctrl.Rule(self.TL_State['Red'] & self.Distance['Close'], self.Brake_Signal['Full_Brake'])
+        
+        # Create the control system with the defined Fuzzy Rules
+        self.TL_Decision_Making = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6,
+                                                 rule7, rule8, rule9, rule10, rule11, rule12])
+        
+        # In order to simulate this control system, we will create a ``ControlSystemSimulation`` which represent the fuzzy logic system
+        self.inference = ctrl.ControlSystemSimulation(self.TL_Decision_Making)
+
         # Information Message (Membership functions loaded)
-        self.get_logger().info('The membership functions have been succesfuly created')
+        self.get_logger().info('The Fuzzy Logic System loaded')
 
         # Subscribe to the tl classes and distances provided by the depth_estimation node
         self.cd_tl_sub = self.create_subscription(ClassDistanceTL, 'estimation/classes_distances', self.listener_callback, 10)
@@ -49,7 +70,16 @@ class MinimalSubscriber(Node):
         header = msg.header
         classes = np.array(msg.classes)
         distances = np.array(msg.distances)
-
+        
+        # Check that we have at least one detection
+        if len(classes) != 0:
+           ## Provide the Distance and TL_State of the closest TL
+           self.inference.input['TL_State'] = classes[0]
+           self.inference.input['Distance'] = distances[0]
+           ## Compute the output with the given values
+           self.inference.compute()
+           ## Result of the Fuzzy Logic Systen
+           print (self.inference.output['Brake_Signal'])
         print(classes)
         print(distances)
         print("------------")
