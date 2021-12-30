@@ -7,6 +7,7 @@ from skfuzzy import control as ctrl
 from rclpy.node import Node
 
 from tl_interfaces.msg import ClassDistanceTL
+from std_msgs.msg import Float64
 
 class MinimalSubscriber(Node):
 
@@ -63,14 +64,17 @@ class MinimalSubscriber(Node):
         self.cd_tl_sub
 
         # Publisher
-        # self.publisher_ = self.create_publisher(ClassDistanceTL,"estimation/classes_distances",20)
+        self.publisher_ = self.create_publisher(Float64,"fl_dm/output",10)
 
     def listener_callback(self, msg):
         # Retrieve ClassDistanceTL Message
         header = msg.header
         classes = np.array(msg.classes)
         distances = np.array(msg.distances)
-        
+ 
+        # Output of the system
+        brake_signal_output = -1.0
+
         # Check that we have at least one detection
         if len(classes) != 0:
            ## Provide the Distance and TL_State of the closest TL
@@ -79,10 +83,12 @@ class MinimalSubscriber(Node):
            ## Compute the output with the given values
            self.inference.compute()
            ## Result of the Fuzzy Logic Systen
-           print (self.inference.output['Brake_Signal'])
-        print(classes)
-        print(distances)
-        print("------------")
+           brake_signal_output = self.inference.output['Brake_Signal']
+
+        # Publish the Float64 Message
+        msg_fl_dm = Float64()
+        msg_fl_dm.data = brake_signal_output
+        self.publisher_.publish(msg_fl_dm)
 
 def main(args=None):
     # ROS
