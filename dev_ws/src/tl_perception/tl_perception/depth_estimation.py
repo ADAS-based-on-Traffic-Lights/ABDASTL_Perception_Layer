@@ -26,6 +26,7 @@ class MinimalSubscriber(Node):
         self.ts.registerCallback(self.listener_callback)
         # Publisher
         self.publisher_ = self.create_publisher(ClassDistanceTL,"estimation/classes_distances",20)
+        self.get_logger().info('Depth Estimation System loaded')
 
     def listener_callback(self, prediction_msg, depth_msg):
         # Retrieve TLPredicton Message
@@ -43,9 +44,19 @@ class MinimalSubscriber(Node):
         #Draw a bounding box to the traffic light detections
         for i,tlclass in enumerate(classes):
           # Calculate the centroid of the TL
-          x = int((bbs[i*4+3] - bbs[i*4+1])/2 + bbs[i*4+1])
-          y = int((bbs[i*4+2] - bbs[i*4])/2 + bbs[i*4])
-          depth_estimation.append(depth_array[y,x])
+          ###x = int((bbs[i*4+3] - bbs[i*4+1])/2 + bbs[i*4+1])
+          ###y = int((bbs[i*4+2] - bbs[i*4])/2 + bbs[i*4])
+          ###depth_estimation.append(depth_array[y,x])
+
+          # Calculate the median of all the values of the TL area
+          bbs_values = np.copy(depth_array[bbs[i*4]:bbs[i*4+2],bbs[i*4+1]:bbs[i*4+3]])
+          print(bbs_values.shape)
+          bbs_values = bbs_values[~np.isinf(bbs_values)]
+          bbs_values = bbs_values[~np.isnan(bbs_values)]
+          print(bbs_values)
+          median = np.median(bbs_values)
+          depth_estimation.append(median)
+
 
         # Convert it to a np array
         depth_estimation = np.array(depth_estimation)
