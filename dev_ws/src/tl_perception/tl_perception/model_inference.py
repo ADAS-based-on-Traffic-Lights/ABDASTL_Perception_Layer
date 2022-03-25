@@ -20,6 +20,7 @@ class MinimalSubscriber(Node):
     def __init__(self):
         super().__init__('model_inference')
         # Set the file paths ot the labels (red,yellow,green,off) and the model
+        #PATH_TO_SAVED_MODEL = "./src/tl_perception/models/EfficienDet512_Augmeted_3/saved_model"
         PATH_TO_SAVED_MODEL = "./src/tl_perception/models/EfficienDet512_Augmeted/saved_model"
         PATH_TO_LABELS = "./src/tl_perception/label_maps/bstld_label_map.pbtxt"
         # Load saved model and build the detection function
@@ -68,6 +69,7 @@ class MinimalSubscriber(Node):
               self.category_index,
               use_normalized_coordinates=True,
               max_boxes_to_draw=200,
+              line_thickness = 5,
               min_score_thresh=.30,
               agnostic_mode=False)
         # Retrieve all the information from the Confidences, BBs, and Classes that are greater than the min threshold
@@ -88,7 +90,7 @@ class MinimalSubscriber(Node):
         new_image.width = width
         new_image.encoding = "bgr8"
         new_image.is_bigendian = msg.is_bigendian
-        new_image.step = msg.step
+        new_image.step = width*3
         # Publish the Image Message
         self.publisher_.publish(new_image)
 
