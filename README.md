@@ -20,7 +20,7 @@
 <br />
 <p align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="gifs/Cover Page.gif" alt="Logo" width="600" height="600">
+    <img src="gifs/Cover Page.gif" alt="Logo" width="600" height="400">
   </a>
 
 <!-- ABOUT THE PROJECT -->
