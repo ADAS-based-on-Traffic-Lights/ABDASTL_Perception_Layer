@@ -50,13 +50,12 @@ class MinimalSubscriber(Node):
 
           # Calculate the median of all the values of the TL area
           bbs_values = np.copy(depth_array[bbs[i*4]:bbs[i*4+2],bbs[i*4+1]:bbs[i*4+3]])
-          print(bbs_values.shape)
+          ## Remove the nans and infs in the bbs area
           bbs_values = bbs_values[~np.isinf(bbs_values)]
           bbs_values = bbs_values[~np.isnan(bbs_values)]
-          print(bbs_values)
-          median = np.median(bbs_values)
+          ## Push the value of the median
+          median =np.median(bbs_values)
           depth_estimation.append(median)
-
 
         # Convert it to a np array
         depth_estimation = np.array(depth_estimation)
