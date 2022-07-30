@@ -172,11 +172,102 @@ represents that no TL was detected and 0 to 1 is the range of operation of the B
 ## 4.3. tl_interfaces package
 This package contains all the custom messages required for the ADAS. These are used in the ```TL_Perception``` package.
 
-# 5. On Road Experiment
+# 5. Execution of the ABSTL
+Execute the following commands in the same order to correctly start the ABSTL.
+## 5.1. Online Experimentation
+This mode is the live mode, the following commands are required to enable this mode.
+### 5.1.1 Activate the Jetson Clocks 
+Open terminal 1 and execute:
+```
+jtop
+```
+Once in the interface provided by jtop enable the jetson clocks manually.
+
+### 5.1.2. Traffic Light State Detection Model (TLSTDM)
+Open terminal 2 and execute the following command:
+```
+taskset 0x06 ros2 run tl_perception model_inference
+```
+### 5.1.3. Zed Wrapper 
+Open terminal 3 and execute the following command:
+```
+taskset 0x39 ros2 launch zed_wrapper zed.launch.py
+```
+### 5.1.4. Traffic Light Distance (TLD)
+Open terminal 4 and execute the following command:
+```
+taskset 0x39 ros2 run tl_perception depth_estimation
+```
+### 5.1.5. Traffic Light Decision-Making (TLDM)
+Open terminal 5 and execute the following command:
+```
+taskset 0x39 ros2 run tl_perception tl_decision_making
+```
+
+## 5.2. Offline Experimentation
+The offline mode is required for testing purposes and it is divided into recording and playing rosbags. The following commands are required:
+### 5.2.1 Recording Rosbags
+Stores the information of the desired topics in rosbag format.
+#### 5.2.1.1 Zed Wrapper
+Open terminal 1 and execute the following command:
+```
+taskset 0x39 ros2 launch zed_wrapper zed.launch.py
+```
+#### 5.2.1.2 Record the topics using rosbags
+Open terminal 2 and execute the following command:
+```
+ros2 bag record /zed/zed_node/left/image_rect_color /zed/zed_node/depth/depth_registered
+```
+***Important:*** This command the topics from the RGB images and depth map from the ZED Stereo Camera. To stop the recording press ***ctrl + c***.
+
+### 5.2.2 Play Rosbags
+Starts streaming the topics that were recorded in the rosbags.
+#### 5.2.2.1 Activate the Jetson Clocks 
+Open terminal 1 and execute:
+```
+jtop
+```
+Once in the interface provided by jtop enable the jetson clocks manually.
+
+#### 5.2.2.2 Traffic Light State Detection Model (TLSTDM)
+Open terminal 2 and execute the following command:
+```
+taskset 0x06 ros2 run tl_perception model_inference
+```
+#### 5.2.2.3 Zed Wrapper 
+Open terminal 3 and execute the following command:
+```
+taskset 0x39 ros2 bag play [name of the rosbag]
+```
+#### 5.2.2.4 Traffic Light Distance (TLD)
+Open terminal 4 and execute the following command:
+```
+taskset 0x39 ros2 run tl_perception depth_estimation
+```
+#### 5.2.2.5 Traffic Light Decision-Making (TLDM)
+Open terminal 5 and execute the following command:
+```
+taskset 0x39 ros2 run tl_perception tl_decision_making
+```
+
+## 5.3. Display the Output of the System
+To evaluate the behaviour of the system it is important to display the output of each stage.
+### 5.3.1. Traffic Light Distance (TLD) Output
+Open terminal 1 and execute the following command:
+```
+ros2 topic echo /estimation/classes_distances
+```
+### 5.3.3. Traffic Light Decision-Making (TLDM) Output
+Open terminal 2 and execute the following command:
+```
+ros2 topic echo /fl_dm/output
+```
+
+# 6. On Road Experiment
 This includes the ***Setup of the Experiment***, ***Tests Perform with the EBDASTL***, ***Performance Metrics of the EBDASTL***.
 The experiment was developed in Av. Epigmenio González, San Pablo, 76130 Santiago de Queretaro, Queretaro, Mexico. This localization was selected given that there is a TL and the traffic is low.
 
-## 5.1. Setup of the Experiment
+## 6.1. Setup of the Experiment
 he setup of all the electronic components is required before starting the experiment. The components involved in this experiment were Volkswagen Vento model 2015, Truper Power Inverter, Computer Monitor, Jetson TX2, ZED Stereo Camera, USB HUB, mouse, and a
 keyboard. The connections of the components were set up as follows: The car’s battery positive and negative terminal was connected to the truper power inverter. The power inverter has two power outlets, one of them fed the computer monitor and the other one fed the Jetson
 TX2. The Jetson TX2 is displayed on the computer monitor using an HDMI connection. Additionally, the Jetson’s TX2 USB port is connected to a USB hub, and this hub connects the ZED Stereo Camera, keyboard, and mouse. The connection of the electric components is shown below:
@@ -197,7 +288,7 @@ Finally, six landmarks were defined at 5, 7, 9, 11, 13, and 15 meters from the T
   <img width= 600 src="images/Environment_Setup.jpg">
 </p>
 
-## 5.2. Tests Perform with the EBDASTL
+## 6.2. Tests Perform with the EBDASTL
 The values provided by the EBDASTL at 5, 7, 9, 11, 13, 15 meters of the estimated distance and the brake signal values can be shown in tables 4.5, 4.6, 4.7, 4.8, 4.9, 4.10. For each experiment, ten samples were used to fill up the content of each table.
 <p align="center">
   <img width= 600 src="images/Table_Results_1.PNG">
@@ -206,17 +297,17 @@ The values provided by the EBDASTL at 5, 7, 9, 11, 13, 15 meters of the estimate
   <img width= 600 src="images/Table_Results_2.PNG">
 </p>
 
-## 5.3. Performance Metrics of the EBDASTL
+## 6.3. Performance Metrics of the EBDASTL
 In this subsection, the ***mAP of detections***, ***RMSE of the estimated distances***, the ***expected values of the fuzzy model***, and the ***response time of the EBDASTL are covered***.
 
-### 5.3.1. mAP of the Detections
+### 6.3.1. mAP of the Detections
 For the evaluation of the detections, the mAP at different IoU are considered. The Green and
 Red States and evaluated together and the results can be shown below:
 <p align="center">
   <img width= 600 src="images/Table_Results_3.PNG">
 </p>
 
-### 5.3.2. RMSE of the Estimated Distances
+### 6.3.2. RMSE of the Estimated Distances
 The distribution of the TLDs estimated by the EBDASTL are seperated into Green State and Red State, these can be shown in the following images.
 <p align="center">
   <img width= 600 src="images/green_distance.png">
@@ -230,7 +321,7 @@ The RMSE was calculated for each of TLS and TLD, in table 4.12 the RMSE values a
   <img width= 900 src="images/Table_Results_4.PNG">
 </p>
 
-### 5.3.3. Fuzzy Model Expected Outputs
+### 6.3.3. Fuzzy Model Expected Outputs
 The fuzzy model can not be tested as it is an open-loop controller, however, in the following figures all the input cases were fed to the fuzzy model system to determine the behavior of the brake signal.
 <p align="center">
   <img width= 600 src="images/Green_Fuzzy_Model.png">
@@ -247,7 +338,7 @@ Once all the brake signal values have been calculated for all the TLSs and TLDs,
   <img width= 600 src="images/red_fz_box_plot.png">
 </p>
 
-### 5.3.4. EBDASTL Response Time
+### 6.3.4. EBDASTL Response Time
 The last important metric is the response time of the EBDASTL, as described in the previous
 section Component Integration using ROS2, the system is composed of three stages, and the
 ZED Wrapper. Therefore, the following figure a box plot can be shown comparing time responses
@@ -256,7 +347,7 @@ of all the stages of the EBDASTL.
   <img width= 600 src="images/Response Time.png">
 </p>
 
-### 5.3.5. Videos of the EBDASTL
+### 6.3.5. Videos of the EBDASTL
 In this subsections we provide several videos of the EBDASTL.
 
 Green State at Different Distances      |  Red State at Different Distances
